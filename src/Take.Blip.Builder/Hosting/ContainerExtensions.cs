@@ -24,13 +24,13 @@ using Take.Blip.Builder.Actions.TrackEvent;
 using Take.Blip.Builder.Actions.TrackContactsJourney;
 using Take.Blip.Builder.Diagnostics;
 using Take.Blip.Builder.Storage;
-using Take.Blip.Builder.Storage.Memory;
 using Take.Blip.Builder.Utils;
 using Take.Blip.Builder.Variables;
 using Take.Blip.Client;
 using Take.Blip.Client.Content;
 using Take.Blip.Client.Extensions;
 using Take.Elephant;
+using AsyncKeyedLock;
 
 namespace Take.Blip.Builder.Hosting
 {
@@ -110,7 +110,11 @@ namespace Take.Blip.Builder.Hosting
 
         private static Container RegisterBuilderStorage(this Container container)
         {
-            container.RegisterSingleton<INamedSemaphore, MemoryNamedSemaphore>();
+            container.RegisterSingleton(() => new AsyncKeyedLocker<string>(o =>
+            {
+                o.PoolSize = 20;
+                o.PoolInitialFill = 1;
+            }));
             container.RegisterSingleton<IFlowSemaphore, BasicFlowSemaphore>();
             container.RegisterSingleton<ISerializer<StorageDocument>, JsonSerializer<StorageDocument>>();
             container.RegisterSingleton<ISerializer<Contact>, JsonSerializer<Contact>>();

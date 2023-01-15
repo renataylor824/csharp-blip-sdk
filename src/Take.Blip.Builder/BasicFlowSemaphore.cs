@@ -1,26 +1,26 @@
-﻿using Lime.Protocol;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
+using Lime.Protocol;
 using Take.Blip.Builder.Models;
-using Take.Blip.Builder.Storage;
 
 namespace Take.Blip.Builder
 {
     class BasicFlowSemaphore: IFlowSemaphore
     {
-        private readonly INamedSemaphore _namedSemaphore;
+        private readonly AsyncKeyedLocker<string> _asyncKeyedLocker;
 
         public BasicFlowSemaphore(
-            INamedSemaphore namedSemaphore
+            AsyncKeyedLocker<string> asyncKeyedLocker
             )
         {
-            _namedSemaphore = namedSemaphore;
+            _asyncKeyedLocker = asyncKeyedLocker;
         }
 
-        public Task<IAsyncDisposable> WaitAsync(Flow flow, Message message, Identity userIdentity, TimeSpan timeout, CancellationToken cancellationToken)
+        public ValueTask<IDisposable> WaitAsync(Flow flow, Message message, Identity userIdentity, TimeSpan timeout, CancellationToken cancellationToken)
         {
-            return _namedSemaphore.WaitAsync($"{flow.Id}:{userIdentity}", timeout, cancellationToken);
+            return _asyncKeyedLocker.LockAsync($"{flow.Id}:{userIdentity}", timeout, cancellationToken);
         }
     }
 }
