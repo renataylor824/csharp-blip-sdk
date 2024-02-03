@@ -64,7 +64,7 @@ namespace Take.Blip.Builder
             ITraceManager traceManager,
             IUserOwnerResolver userOwnerResolver,
             IInputExpirationHandler inputExpirationHandler,
-            Application application, 
+            Application application,
             IFlowLoader flowLoader,
             IFlowSessionManager flowSessionManager
             )
@@ -165,8 +165,7 @@ namespace Take.Blip.Builder
                 using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken))
                 {
                     // Synchronize to avoid concurrency issues on multiple running instances
-                    var handle = await _flowSemaphore.WaitAsync(flow, message, userIdentity, _configuration.InputProcessingTimeout, linkedCts.Token);
-                    try
+                    using (await _flowSemaphore.WaitAsync(flow, message, userIdentity, _configuration.InputProcessingTimeout, linkedCts.Token).ConfigureAwait(false))
                     {
                         // Create the input evaluator
                         var lazyInput = new LazyInput(message, userIdentity, flow.BuilderConfiguration, _documentSerializer,
@@ -247,9 +246,9 @@ namespace Take.Blip.Builder
                                         parentStateIdQueue.Enqueue(state.Id);
 
                                         (flow, state, stateTrace, stateStopwatch) = await RedirectToSubflowAsync(
-                                            context, 
-                                            userIdentity, 
-                                            state, 
+                                            context,
+                                            userIdentity,
+                                            state,
                                             flow,
                                             stateTrace,
                                             stateStopwatch,
@@ -321,10 +320,6 @@ namespace Take.Blip.Builder
                         await ProcessGlobalOutputActionsAsync(context, flow, lazyInput, inputTrace, linkedCts.Token);
 
                         await _inputExpirationHandler.OnFlowProcessedAsync(state, message, _applicationNode, linkedCts.Token);
-                    }
-                    finally
-                    {
-                        await handle?.DisposeAsync();
                     }
                 }
             }
